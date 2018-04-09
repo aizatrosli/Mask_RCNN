@@ -1,4 +1,4 @@
-import ast, os, cv2
+import ast, os, cv2, skimage.io, skimage.color, skimage.transform
 import pandas as pd
 import numpy as np
 from mrcnn import utils
@@ -19,8 +19,23 @@ class NucleiDataset(utils.Dataset):
             img = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
         return img
 
-    def load_nuclei(self, count, height, width, aug=False):
+    def load_image(self, image_id):
+        """Load the specified image and return a [H,W,3] Numpy array.
+        """
+        # Load image
+        info = self.image_info[image_id]
+        image = skimage.io.imread(self.image_info[image_id]['path'])
+        # If grayscale. Convert to RGB for consistency.
+        if image.ndim != 3:
+            image = skimage.color.gray2rgb(image)
+        # If has an alpha channel, remove it for consistency
+        if image.shape[-1] == 4:
+            image = image[..., :3]
+        image = skimage.transform.resize(image, (info['height'], info['width']),mode='constant')
+        return image
 
+    def load_nuclei(self, height, width, aug=False):
+    #Pre-augment data disable
         self.add_class("shapes", 1, "nuclei")
         traindf = pd.read_csv(_TRAINCSV)
 
